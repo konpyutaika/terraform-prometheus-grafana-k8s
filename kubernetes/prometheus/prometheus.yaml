@@ -1,0 +1,45 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: ${instance-name}
+spec:
+  logLevel: ${log-level}
+  %{~ if length(pod-monitor-match-label-selector) > 0 ~}
+  podMonitorSelector:
+    matchExpressions:
+      %{~ for key,value in pod-monitor-match-label-selector ~}
+      - {key: ${key}, operator: In, values: [${value}]}
+      %{~ endfor ~}
+  %{~ endif~}
+  serviceAccountName: ${service-account-name}
+  %{~ if length(alert-managers) > 0 ~}
+  alerting:
+    alertmanagers:
+      %{~ for key, value in alert-managers ~}
+      - namespace: ${value.namespace}
+        name: ${value.name}
+        port: ${value.port}
+      %{~ endfor ~}
+  %{~ endif~}
+  %{~ if length(service-monitor-match-label-selector) > 0 ~}
+  serviceMonitorSelector:
+    matchExpressions:
+      %{~ for key,value in service-monitor-match-label-selector ~}
+      - {key: ${key}, operator: In, values: [${value}]}
+      %{~ endfor ~}
+  %{~ endif~}
+  %{~ if length(rule-match-label-selector) > 0 ~}
+  ruleSelector:
+    matchExpressions:
+      %{~ for key,value in rule-match-label-selector ~}
+      - {key: ${key}, operator: In, values: [${value}]}
+      %{~ endfor ~}
+  %{~ endif~}
+  resources:
+    requests:
+      memory: 400Mi
+  enableAdminAPI: false
+  %{~ if length(kubernetes_node_selector) > 0 ~}
+  nodeSelector:
+    ${indent(4, yamlencode(kubernetes_node_selector))}
+  %{~ endif~}
